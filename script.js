@@ -1,65 +1,66 @@
-const wordDisplay = document.querySelector(".word-display");
-const guessesText = document.querySelector(".guesses-text b");
-const keyboardDiv = document.querySelector(".keyboard");
-const hangmanImage = document.querySelector(".hangman-box img");
-const gameModal = document.querySelector(".game-modal");
-const playAgainBtn = gameModal.querySelector("button");
-// Initializing game variables
-let currentWord, correctLetters, wrongGuessCount;
-const maxGuesses = 6;
-const resetGame = () => {
-    // Ressetting game variables and UI elements
-    correctLetters = [];
-    wrongGuessCount = 0;
-    hangmanImage.src = "images/hangman-0.svg";
-    guessesText.innerText = `${wrongGuessCount} / ${maxGuesses}`;
-    wordDisplay.innerHTML = currentWord.split("").map(() => `<li class="letter"></li>`).join("");
-    keyboardDiv.querySelectorAll("button").forEach(btn => btn.disabled = false);
-    gameModal.classList.remove("show");
-}
-const getRandomWord = () => {
-    // Selecting a random word and hint from the wordList
-    const { word, hint } = wordList[Math.floor(Math.random() * wordList.length)];
-    currentWord = word; // Making currentWord as random word
-    document.querySelector(".hint-text b").innerText = hint;
-    resetGame();
-}
-const gameOver = (isVictory) => {
-    // After game complete.. showing modal with relevant details
-    const modalText = isVictory ? `You found the word:` : 'The correct word was:';
-    gameModal.querySelector("img").src = `images/${isVictory ? 'victory' : 'lost'}.gif`;
-    gameModal.querySelector("h4").innerText = isVictory ? 'Congrats!' : 'Game Over!';
-    gameModal.querySelector("p").innerHTML = `${modalText} <b>${currentWord}</b>`;
-    gameModal.classList.add("show");
-}
-const initGame = (button, clickedLetter) => {
-    // Checking if clickedLetter is exist on the currentWord
-    if(currentWord.includes(clickedLetter)) {
-        // Showing all correct letters on the word display
-        [...currentWord].forEach((letter, index) => {
-            if(letter === clickedLetter) {
-                correctLetters.push(letter);
-                wordDisplay.querySelectorAll("li")[index].innerText = letter;
-                wordDisplay.querySelectorAll("li")[index].classList.add("guessed");
+   const board = document.getElementById("board");
+        const status = document.getElementById("status");
+        let cells = [];
+        let currentPlayer = "X";
+        let gameActive = true;
+
+        function createBoard() {
+            board.innerHTML = "";
+            cells = [];
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement("div");
+                cell.classList.add("cell");
+                cell.dataset.index = i;
+                cell.addEventListener("click", makeMove);
+                board.appendChild(cell);
+                cells.push(cell);
             }
-        });
-    } else {
-        // If clicked letter doesn't exist then update the wrongGuessCount and hangman image
-        wrongGuessCount++;
-        hangmanImage.src = `images/hangman-${wrongGuessCount}.svg`;
-    }
-    button.disabled = true; // Disabling the clicked button so user can't click again
-    guessesText.innerText = `${wrongGuessCount} / ${maxGuesses}`;
-    // Calling gameOver function if any of these condition meets
-    if(wrongGuessCount === maxGuesses) return gameOver(false);
-    if(correctLetters.length === currentWord.length) return gameOver(true);
-}
-// Creating keyboard buttons and adding event listeners
-for (let i = 97; i <= 122; i++) {
-    const button = document.createElement("button");
-    button.innerText = String.fromCharCode(i);
-    keyboardDiv.appendChild(button);
-    button.addEventListener("click", (e) => initGame(e.target, String.fromCharCode(i)));
-}
-getRandomWord();
-playAgainBtn.addEventListener("click", getRandomWord);
+            status.textContent = `Хід гравця: ${currentPlayer}`;
+        }
+
+        function makeMove(event) {
+            if (!gameActive) return;
+            const cell = event.target;
+            if (cell.textContent !== "") return;
+            
+            cell.textContent = currentPlayer;
+            cell.classList.add("taken");
+            cell.style.color = currentPlayer === "X" ? "#ff4757" : "#1e90ff";
+            
+            if (checkWinner()) {
+                status.textContent = `Гравець ${currentPlayer} переміг!`;
+                gameActive = false;
+                return;
+            }
+            
+            if (cells.every(cell => cell.textContent !== "")) {
+                status.textContent = "Нічия!";
+                gameActive = false;
+                return;
+            }
+            
+            currentPlayer = currentPlayer === "X" ? "O" : "X";
+            status.textContent = `Хід гравця: ${currentPlayer}`;
+        }
+
+        function checkWinner() {
+            const winningCombinations = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+            return winningCombinations.some(combination => {
+                const [a, b, c] = combination;
+                return cells[a].textContent &&
+                       cells[a].textContent === cells[b].textContent &&
+                       cells[a].textContent === cells[c].textContent;
+            });
+        }
+
+        function restartGame() {
+            currentPlayer = "X";
+            gameActive = true;
+            createBoard();
+        }
+
+        createBoard();
